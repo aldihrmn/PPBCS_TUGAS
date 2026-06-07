@@ -56,7 +56,6 @@ class DefaultFirebaseOptions {
     projectId: 'flutter-firebase-demo-aldi',
     storageBucket: 'flutter-firebase-demo-aldi.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCLumB1Z5zJl1H0ya4JIyvsQxR2f2my5lY',
     appId: '1:553398879251:ios:a977536771f7b1a0406be6',
@@ -65,7 +64,6 @@ class DefaultFirebaseOptions {
     storageBucket: 'flutter-firebase-demo-aldi.firebasestorage.app',
     iosBundleId: 'com.example.flutterFirebaseDemo',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCLumB1Z5zJl1H0ya4JIyvsQxR2f2my5lY',
     appId: '1:553398879251:ios:a977536771f7b1a0406be6',

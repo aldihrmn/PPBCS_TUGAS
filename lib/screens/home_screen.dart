@@ -10,70 +10,154 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final TextEditingController _dataController = TextEditingController();
 
-  Future<void> _addData() async {
-    final user = FirebaseAuth.instance.currentUser;
+  final FirebaseFirestore firestore =
+      FirebaseFirestore.instance;
 
-    if (user != null && _dataController.text.isNotEmpty) {
-      await _firestore.collection('user_data').add({
-        'text': _dataController.text,
-        'createdAt': Timestamp.now(),
-        'userId': user.uid,
-        'userEmail': user.email,
-      });
+  final TextEditingController nimController =
+      TextEditingController();
 
-      _dataController.clear();
+  final TextEditingController namaController =
+      TextEditingController();
+
+  final TextEditingController kelasController =
+      TextEditingController();
+
+  String status = "Hadir";
+
+  Future<void> simpanAbsensi() async {
+
+    User? user =
+        FirebaseAuth.instance.currentUser;
+
+    if (nimController.text.isEmpty ||
+        namaController.text.isEmpty ||
+        kelasController.text.isEmpty) {
+      return;
     }
+
+    await firestore.collection("absensi").add({
+      "nim": nimController.text,
+      "nama": namaController.text,
+      "kelas": kelasController.text,
+      "status": status,
+      "userId": user?.uid,
+      "createdAt": Timestamp.now(),
+    });
+
+    nimController.clear();
+    namaController.clear();
+    kelasController.clear();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Data berhasil disimpan"),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
+
+    User? user =
+        FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Beranda & Data'),
+        title: const Text("Absensi Mahasiswa"),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
+
               await FirebaseAuth.instance.signOut();
+
+              Navigator.pop(context);
             },
           ),
         ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16),
+
         child: Column(
           children: [
+
             Text(
-              'Selamat datang, ${user?.email ?? "Pengguna"}!',
-              style: const TextStyle(fontSize: 18),
+              "Login sebagai: ${user?.email}",
             ),
 
             const SizedBox(height: 20),
 
             TextField(
-              controller: _dataController,
+              controller: nimController,
               decoration: const InputDecoration(
-                labelText: 'Masukkan data baru',
+                labelText: "NIM",
                 border: OutlineInputBorder(),
               ),
             ),
 
             const SizedBox(height: 10),
 
+            TextField(
+              controller: namaController,
+              decoration: const InputDecoration(
+                labelText: "Nama Mahasiswa",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            TextField(
+              controller: kelasController,
+              decoration: const InputDecoration(
+                labelText: "Kelas",
+                border: OutlineInputBorder(),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            DropdownButtonFormField<String>(
+              value: status,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: "Status Kehadiran",
+              ),
+              items: const [
+                DropdownMenuItem(
+                  value: "Hadir",
+                  child: Text("Hadir"),
+                ),
+                DropdownMenuItem(
+                  value: "Izin",
+                  child: Text("Izin"),
+                ),
+                DropdownMenuItem(
+                  value: "Sakit",
+                  child: Text("Sakit"),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  status = value!;
+                });
+              },
+            ),
+
+            const SizedBox(height: 10),
+
             ElevatedButton(
-              onPressed: _addData,
-              child: const Text('Simpan Data'),
+              onPressed: simpanAbsensi,
+              child: const Text("Simpan Absensi"),
             ),
 
             const SizedBox(height: 20),
 
             const Text(
-              'Data Tersimpan:',
+              "Data Absensi",
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -84,57 +168,54 @@ class _HomeScreenState extends State<HomeScreen> {
 
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore
-                    .collection('user_data')
+                stream: firestore
+                    .collection("absensi")
+                    .orderBy(
+                      "createdAt",
+                      descending: true,
+                    )
                     .snapshots(),
+
                 builder: (context, snapshot) {
+
                   if (snapshot.connectionState ==
                       ConnectionState.waiting) {
                     return const Center(
-                      child: CircularProgressIndicator(),
-                    );
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Text(
-                        'Error: ${snapshot.error}',
-                      ),
+                      child:
+                          CircularProgressIndicator(),
                     );
                   }
 
                   if (!snapshot.hasData ||
                       snapshot.data!.docs.isEmpty) {
                     return const Center(
-                      child: Text('Belum ada data.'),
+                      child: Text(
+                        "Belum ada data absensi",
+                      ),
                     );
                   }
 
-                  final docs = snapshot.data!.docs.where((doc) {
-                    final data =
-                        doc.data() as Map<String, dynamic>;
-                    return data['userId'] == user?.uid;
-                  }).toList();
-
-                  if (docs.isEmpty) {
-                    return const Center(
-                      child: Text('Belum ada data.'),
-                    );
-                  }
+                  var docs =
+                      snapshot.data!.docs;
 
                   return ListView.builder(
                     itemCount: docs.length,
+
                     itemBuilder: (context, index) {
-                      final data =
-                          docs[index].data() as Map<String, dynamic>;
+
+                      var data =
+                          docs[index].data()
+                              as Map<String, dynamic>;
 
                       return Card(
                         child: ListTile(
                           title: Text(
-                            data['text'] ?? '',
+                            data["nama"] ?? "",
                           ),
                           subtitle: Text(
-                            data['userEmail'] ?? '',
+                            "NIM: ${data["nim"]}\n"
+                            "Kelas: ${data["kelas"]}\n"
+                            "Status: ${data["status"]}",
                           ),
                         ),
                       );
